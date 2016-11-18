@@ -18,7 +18,7 @@ Create a new `secureRedirects` middleware by using the default options. By defau
 
 #### options.validator
 
-If you need custom functionality then you can pass in a custom validator function. This should be a function which returns a boolean which should be `true` if the redirection host is invalid. The redirection hostname and the currenthostname will be passed to the validator.
+If you need custom functionality then you can pass in a custom validator function. This should be a function which returns a boolean which should be `true` if the redirection host is invalid. The redirection hostname and the current hostname will be passed to the validator.
 
 ```js
 var secureRedirects = require('secure-redirects')
