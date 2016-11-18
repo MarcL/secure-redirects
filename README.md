@@ -2,15 +2,35 @@
 
 An Express middleware to stop unvalidated redirects and forwards.
 
+## Why should I secure my Express redirects?
+
+https://www.owasp.org/index.php/Top_10_2013-A10-Unvalidated_Redirects_and_Forwards
+
 ## API
 
 ```js
 var secureRedirects = require('secure-redirects')
 ```
 
-## Why should I secure my Express redirects?
+### secureRedirects(options)
 
-https://www.owasp.org/index.php/Top_10_2013-A10-Unvalidated_Redirects_and_Forwards
+Create a new `secureRedirects` middleware by using the default options. By default, you don't need to pass any options into it and it will lock your redirects to your current domain. This happens by comparing the redirection URL host against the current host to see if they differ.
+
+#### options.validator
+
+If you need custom functionality then you can pass in a custom validator function. This should be a function which returns a boolean which should be `true` if the redirection host is invalid.
+
+```js
+var secureRedirects = require('secure-redirects')
+
+var options = {
+    // Disallow redirection to google.com
+    validator: function(redirectHostname, currentHostname) {
+        return (redirectHostname === 'google.com');
+    }
+}
+app.use(secureRedirects(options));
+```
 
 ### secureRedirect()
 

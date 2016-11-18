@@ -3,11 +3,12 @@ import url from 'url';
 
 const locationHeaderName = 'Location';
 
-function secureRedirects() {
-
-    function isInvalidRedirect(redirectUrl, currentHost) {
-        return redirectUrl !== currentHost;
+function secureRedirects(options = {}) {
+    function isInvalidRedirect(redirectHostName, currentHostName) {
+        return redirectHostName !== currentHostName;
     }
+
+    const domainValidator = options.validator || isInvalidRedirect;
 
     return (request, response, next) => {
         function validateRedirects() {
@@ -17,7 +18,7 @@ function secureRedirects() {
                 const {hostname: redirectHostname} = url.parse(locationHeader);
                 const currentHost = request.hostname;
 
-                if (isInvalidRedirect(redirectHostname, currentHost)) {
+                if (domainValidator(redirectHostname, currentHost)) {
                     const protocol = request.protocol;
                     this.set('Location', `${protocol}://${currentHost}`);
                 }
