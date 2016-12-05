@@ -2,13 +2,13 @@ import httpMocks from 'node-mocks-http';
 import proxyquire from 'proxyquire';
 
 describe('Secure redirects', () => {
-    const fakeRequest = httpMocks.createRequest();
     const fakeResponse = httpMocks.createResponse();
     const fakeNext = () => {};
     const defaultHostname = 'example.com';
     const defaultProtocol = 'https';
     const defaultDomain = `${defaultProtocol}://${defaultHostname}`;
 
+    let fakeRequest;
     let secureRedirects;
     let stubOnHeaders;
     let stubResponseGet;
@@ -33,8 +33,11 @@ describe('Secure redirects', () => {
         };
         fakeResponse.get = stubResponseGet;
         fakeResponse.set = stubResponseSet;
+
+        fakeRequest = httpMocks.createRequest();
         fakeRequest.hostname = defaultHostname;
         fakeRequest.protocol = defaultProtocol;
+        fakeRequest.Host = null;
     });
 
     it('should call next', () => {
@@ -70,7 +73,7 @@ describe('Secure redirects', () => {
                 it('if redirecting to the same domain and port is set', () => {
                     const defaultPort = 3000;
                     const givenHostname = `${defaultHostname}:${defaultPort}`;
-                    fakeRequest['Host'] = givenHostname;
+                    fakeRequest.Host = givenHostname;
                     stubResponseGet.withArgs('Location').returns(`http://${givenHostname}/some-path`);
                     secureRedirects()(fakeRequest, fakeResponse, fakeNext);
 
@@ -79,10 +82,10 @@ describe('Secure redirects', () => {
             });
 
             describe('if redirect URL redirects outside the current domain', () => {
-                const givenBadDomain = 'https://baddomain.com';
+                const givenBadRedirectUrl = 'https://baddomain.com/bad-path';
 
                 beforeEach(() => {
-                    stubResponseGet.withArgs('Location').returns(givenBadDomain);
+                    stubResponseGet.withArgs('Location').returns(givenBadRedirectUrl);
                 });
 
                 it('should set Location header to default URL', () => {
@@ -92,10 +95,22 @@ describe('Secure redirects', () => {
                         .to.have.been.calledWithExactly('Location', defaultDomain);
                 });
 
+                it('should set Location header to default URL with port if set', () => {
+                    const defaultPort = 3000;
+                    const givenHostname = `${defaultHostname}:${defaultPort}`;
+                    const expectedDomain = `${defaultProtocol}://${givenHostname}`;
+                    fakeRequest.Host = givenHostname;
+
+                    secureRedirects()(fakeRequest, fakeResponse, fakeNext);
+
+                    expect(stubResponseSet)
+                        .to.have.been.calledWithExactly('Location', expectedDomain);
+                });
+
                 it('should call logger.warn with expected urls', () => {
                     const givenOptions = {logger: fakeLogger};
                     const expectedMetadata = {
-                        redirectUrl: givenBadDomain,
+                        redirectUrl: givenBadRedirectUrl,
                         securedUrl: defaultDomain
                     };
                     secureRedirects(givenOptions)(fakeRequest, fakeResponse, fakeNext);
