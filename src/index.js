@@ -1,26 +1,41 @@
 import onHeaders from 'on-headers';
 import url from 'url';
 
-const locationHeaderName = 'Location';
-
 function secureRedirects(options = {}) {
-    function isInvalidRedirect(redirectHostName, currentHostName) {
-        return redirectHostName !== currentHostName;
+
+    function isValidRedirect(redirectHostName, currentHost) {
+        const {hostname} = url.parse(currentHost);
+        return (redirectHostName.indexOf(hostname) > -1);
     }
 
-    const domainValidator = options.validator || isInvalidRedirect;
+    function isLocalRedirect(locationHeader) {
+        const parsedLocationHeader = url.parse(locationHeader);
+        const {hostname} = parsedLocationHeader;
+        return !hostname || hostname.charAt(0) === '/';
+    }
+
+    const domainValidator = options.validator || isValidRedirect;
+    const logger = options.logger || console;
 
     return (request, response, next) => {
+        const {protocol, hostname} = request;
+        const hostUrl = `${protocol}://${hostname}`;
+
         function validateRedirects() {
-            const locationHeader = this.get(locationHeaderName);
+            const redirectUrl = this.get('Location');
 
-            if (locationHeader) {
-                const {hostname: redirectHostname} = url.parse(locationHeader);
-                const currentHost = request.hostname;
+            if (redirectUrl) {
+                const {hostname: redirectHostname} = url.parse(redirectUrl);
 
-                if (domainValidator(redirectHostname, currentHost)) {
-                    const protocol = request.protocol;
-                    this.set('Location', `${protocol}://${currentHost}`);
+                if (!isLocalRedirect(redirectUrl) && !domainValidator(redirectHostname, hostUrl)) {
+                    const securedRedirectUrl = `${hostUrl}`;
+                    this.set('Location', securedRedirectUrl);
+
+                    const warningInfo = {
+                        redirectUrl: redirectUrl,
+                        securedUrl: securedRedirectUrl
+                    };
+                    logger.warn('Securing bad redirect', warningInfo);
                 }
             }
         }

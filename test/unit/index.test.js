@@ -13,6 +13,8 @@ describe('Secure redirects', () => {
     let stubOnHeaders;
     let stubResponseGet;
     let stubResponseSet;
+    let stubLoggerWarn;
+    let fakeLogger;
 
     beforeEach(() => {
         stubOnHeaders = sinon.spy((response, callback) => {
@@ -25,6 +27,10 @@ describe('Secure redirects', () => {
 
         stubResponseGet = sinon.stub().returns('');
         stubResponseSet = sinon.stub().returns('');
+        stubLoggerWarn = sinon.stub();
+        fakeLogger = {
+            warn: stubLoggerWarn
+        };
         fakeResponse.get = stubResponseGet;
         fakeResponse.set = stubResponseSet;
         fakeRequest.hostname = defaultHostname;
@@ -44,69 +50,105 @@ describe('Secure redirects', () => {
         expect(stubResponseSet).to.not.have.been.called;
     });
 
-    describe('with default validator', () => {
-        it('should not set Location header if redirecting to the same domain', () => {
-            stubResponseGet.withArgs('Location').returns(`${defaultDomain}/some-path`);
-            secureRedirects()(fakeRequest, fakeResponse, fakeNext);
+    describe('if request is redirecting', () => {
+        describe('with default validator', () => {
+            describe('should not set Location header', () => {
+                it('if redirecting to a local path', () => {
+                    stubResponseGet.withArgs('Location').returns('/local-path');
+                    secureRedirects()(fakeRequest, fakeResponse, fakeNext);
 
-            expect(stubResponseSet).to.not.have.been.called;
-        });
+                    expect(stubResponseSet).to.not.have.been.called;
+                });
 
-        describe('if redirect URL redirects outside the current domain', () => {
-            beforeEach(() => {
-                stubResponseGet.withArgs('Location').returns('https://baddomain.com');
+                it('if redirecting to the same domain', () => {
+                    stubResponseGet.withArgs('Location').returns(`${defaultDomain}/some-path`);
+                    secureRedirects()(fakeRequest, fakeResponse, fakeNext);
+
+                    expect(stubResponseSet).to.not.have.been.called;
+                });
+
+                it('if redirecting to the same domain and port is set', () => {
+                    const defaultPort = 3000;
+                    const givenHostname = `${defaultHostname}:${defaultPort}`;
+                    fakeRequest['Host'] = givenHostname;
+                    stubResponseGet.withArgs('Location').returns(`http://${givenHostname}/some-path`);
+                    secureRedirects()(fakeRequest, fakeResponse, fakeNext);
+
+                    expect(stubResponseSet).to.not.have.been.called;
+                });
             });
 
-            it('should set Location header to default URL', () => {
-                secureRedirects()(fakeRequest, fakeResponse, fakeNext);
+            describe('if redirect URL redirects outside the current domain', () => {
+                const givenBadDomain = 'https://baddomain.com';
+
+                beforeEach(() => {
+                    stubResponseGet.withArgs('Location').returns(givenBadDomain);
+                });
+
+                it('should set Location header to default URL', () => {
+                    secureRedirects()(fakeRequest, fakeResponse, fakeNext);
+
+                    expect(stubResponseSet)
+                        .to.have.been.calledWithExactly('Location', defaultDomain);
+                });
+
+                it('should call logger.warn with expected urls', () => {
+                    const givenOptions = {logger: fakeLogger};
+                    const expectedMetadata = {
+                        redirectUrl: givenBadDomain,
+                        securedUrl: defaultDomain
+                    };
+                    secureRedirects(givenOptions)(fakeRequest, fakeResponse, fakeNext);
+
+                    expect(stubLoggerWarn)
+                        .to.have.been.calledWithExactly('Securing bad redirect', expectedMetadata);
+                });
+            });
+        });
+
+        describe('with custom validator', () => {
+            let stubValidator;
+            let defaultOptions;
+
+            beforeEach(() => {
+                stubValidator = sinon.stub().returns(true);
+                defaultOptions = {
+                    validator: stubValidator
+                };
+
+                stubResponseGet.withArgs('Location').returns(`${defaultDomain}/some-path`);
+            });
+
+            it('should call the custom validator if redirecting', () => {
+                secureRedirects(defaultOptions)(fakeRequest, fakeResponse, fakeNext);
+
+                expect(stubValidator).to.be.calledOnce;
+            });
+
+            it('should call the custom validator with expected hostname and domain name', () => {
+                const badDomain = 'baddomain.com';
+                const givenRedirectUrl = `https://${badDomain}/some-path`;
+                stubResponseGet.withArgs('Location').returns(givenRedirectUrl);
+                secureRedirects(defaultOptions)(fakeRequest, fakeResponse, fakeNext);
+
+                expect(stubValidator).to.be.calledWithExactly(badDomain, defaultDomain);
+            });
+
+            it('should set Location header to default URL if custom validator returns false', () => {
+                stubValidator.returns(false);
+                secureRedirects(defaultOptions)(fakeRequest, fakeResponse, fakeNext);
 
                 expect(stubResponseSet)
                     .to.have.been.calledWithExactly('Location', defaultDomain);
             });
+
+            it('should set Location header to default URL if custom validator returns true', () => {
+                stubValidator.returns(true);
+                secureRedirects(defaultOptions)(fakeRequest, fakeResponse, fakeNext);
+
+                expect(stubResponseSet).to.not.have.been.called;
+            });
         });
     });
 
-    describe('with custom validator', () => {
-        let stubValidator;
-        let defaultOptions;
-
-        beforeEach(() => {
-            stubValidator = sinon.stub().returns(true);
-            defaultOptions = {
-                validator: stubValidator
-            };
-
-            stubResponseGet.withArgs('Location').returns(`${defaultDomain}/some-path`);
-        });
-
-        it('should call the custom validator if redirecting', () => {
-            secureRedirects(defaultOptions)(fakeRequest, fakeResponse, fakeNext);
-
-            expect(stubValidator).to.be.calledOnce;
-        });
-
-        it('should call the custom validator with expected hostname and domain name', () => {
-            const badDomain = 'baddomain.com';
-            const givenRedirectUrl = `https://${badDomain}/some-path`;
-            stubResponseGet.withArgs('Location').returns(givenRedirectUrl);
-            secureRedirects(defaultOptions)(fakeRequest, fakeResponse, fakeNext);
-
-            expect(stubValidator).to.be.calledWithExactly(badDomain, defaultHostname);
-        });
-
-        it('should set Location header to default URL if custom validator returns true', () => {
-            stubValidator.returns(true);
-            secureRedirects(defaultOptions)(fakeRequest, fakeResponse, fakeNext);
-
-            expect(stubResponseSet)
-                .to.have.been.calledWithExactly('Location', defaultDomain);
-        });
-
-        it('should set Location header to default URL if custom validator returns false', () => {
-            stubValidator.returns(false);
-            secureRedirects(defaultOptions)(fakeRequest, fakeResponse, fakeNext);
-
-            expect(stubResponseSet).to.not.have.been.called;
-        });
-    });
 });
