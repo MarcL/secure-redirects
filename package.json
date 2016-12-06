@@ -9,7 +9,7 @@
     "prepublish": "npm run pre-push && npm run build",
     "pre-push": "npm run lint && npm run test",
     "test": "mocha",
-    "test:coverage": "nyc report --reporter=text-lcov | coveralls"
+    "test:coverage": "nyc report --require babel-register --reporter=text-lcov | coveralls"
   },
   "keywords": [
     "express",
