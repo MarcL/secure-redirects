@@ -82,12 +82,6 @@ app.get('/bad-user-redirect', function (request, response) {
 })
 ```
 
-## TODO
-
-* Add configuration
-* Add custom logging
-* Add custom redirect logic
-
 ## License
 
 [MIT](LICENSE)
