@@ -2,6 +2,8 @@
 
 > An Express middleware to stop unvalidated redirects and forwards.
 
+[![Build Status](https://travis-ci.org/MarcL/secure-redirects.svg?branch=master)](https://travis-ci.org/MarcL/secure-redirects)
+
 ## Installation
 
 ```
