@@ -1,6 +1,6 @@
 {
   "name": "secure-redirects",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Express middleware to validate and secure redirects",
   "main": "lib/index.js",
   "scripts": {
