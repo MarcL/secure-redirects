@@ -18,7 +18,7 @@ https://www.owasp.org/index.php/Top_10_2013-A10-Unvalidated_Redirects_and_Forwar
 ## API
 
 ```js
-var secureRedirects = require('secure-redirects')
+var secureRedirects = require('secure-redirects');
 ```
 
 ### secureRedirects(options)
@@ -30,14 +30,15 @@ Create a new `secureRedirects` middleware by using the default options. By defau
 If you need custom functionality then you can pass in a custom validator function. This should be a function which returns a boolean which should be `true` if the redirection host is valid or `false` if the redirection host is invalid. The redirection hostname and the current hostname will be passed to the validator.
 
 ```js
-var secureRedirects = require('secure-redirects')
+var secureRedirects = require('secure-redirects');
 
 var options = {
     // Only allow redirection to google.com
     validator: function(redirectHostname, currentHostname) {
         return (redirectHostname === 'google.com');
     }
-}
+};
+
 app.use(secureRedirects(options));
 ```
 
@@ -46,14 +47,29 @@ app.use(secureRedirects(options));
 The logger defaults to `console` but you can pass another logger object, such as [Winston](https://github.com/winstonjs/winston) into the options if required. The logger is assumed to contain a `warn` property which is called if the redirection URL is being re-written.
 
 ```js
-var secureRedirects = require('secure-redirects')
+var secureRedirects = require('secure-redirects');
 
 var options = {
     logger: myCustomLogger
-}
+};
+
 app.use(secureRedirects(options));
 ```
 
+#### options.redirectUrl
+
+By default the middleware will redirect to the root of the domain that the Express server is running on. You can override this behaviour by passing a specified redirection url as part of the options.
+
+```js
+var secureRedirects = require('secure-redirects');
+
+// Redirect to https://twitter.com if bad redirect is encountered
+var options = {
+    redirectUrl: 'https://twitter.com'
+};
+
+app.use(secureRedirects(options));
+```
 
 ### secureRedirect()
 

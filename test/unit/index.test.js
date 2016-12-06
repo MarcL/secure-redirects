@@ -118,6 +118,17 @@ describe('Secure redirects', () => {
                     expect(stubLoggerWarn)
                         .to.have.been.calledWithExactly('Securing bad redirect', expectedMetadata);
                 });
+
+                it('should set Location to be expected URL if passed with options', () => {
+                    const givenRedirectUrl = 'https://www.differentdomain.com/some-path';
+                    const givenOptions = {
+                        redirectUrl: givenRedirectUrl
+                    };
+
+                    secureRedirects(givenOptions)(fakeRequest, fakeResponse, fakeNext);
+                    expect(stubResponseSet)
+                        .to.have.been.calledWithExactly('Location', givenRedirectUrl);
+                });
             });
         });
 

@@ -29,7 +29,8 @@ function secureRedirects(options = {}) {
 
                 if (!isLocalRedirect(redirectUrl) && !domainValidator(redirectHostname, hostUrl)) {
                     const domainWithPort = request.Host;
-                    const securedRedirectUrl = domainWithPort ? `${protocol}://${domainWithPort}` : hostUrl;
+                    const securedHostUrl = domainWithPort ? `${protocol}://${domainWithPort}` : hostUrl;
+                    const securedRedirectUrl = options.redirectUrl || securedHostUrl;
                     this.set('Location', securedRedirectUrl);
 
                     const warningInfo = {
