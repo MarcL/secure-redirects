@@ -1,6 +1,12 @@
 # secure-redirects
 
-An Express middleware to stop unvalidated redirects and forwards.
+> An Express middleware to stop unvalidated redirects and forwards.
+
+## Installation
+
+```
+npm install --save secure-redirects
+```
 
 ## Why should I secure my Express redirects?
 
@@ -18,19 +24,33 @@ Create a new `secureRedirects` middleware by using the default options. By defau
 
 #### options.validator
 
-If you need custom functionality then you can pass in a custom validator function. This should be a function which returns a boolean which should be `true` if the redirection host is invalid. The redirection hostname and the current hostname will be passed to the validator.
+If you need custom functionality then you can pass in a custom validator function. This should be a function which returns a boolean which should be `true` if the redirection host is valid or `false` if the redirection host is invalid. The redirection hostname and the current hostname will be passed to the validator.
 
 ```js
 var secureRedirects = require('secure-redirects')
 
 var options = {
-    // Disallow redirection to google.com
+    // Only allow redirection to google.com
     validator: function(redirectHostname, currentHostname) {
         return (redirectHostname === 'google.com');
     }
 }
 app.use(secureRedirects(options));
 ```
+
+#### options.logger
+
+The logger defaults to `console` but you can pass another logger object, such as [Winston](https://github.com/winstonjs/winston) into the options if required. The logger is assumed to contain a `warn` property which is called if the redirection URL is being re-written.
+
+```js
+var secureRedirects = require('secure-redirects')
+
+var options = {
+    logger: myCustomLogger
+}
+app.use(secureRedirects(options));
+```
+
 
 ### secureRedirect()
 
