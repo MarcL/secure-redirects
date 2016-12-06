@@ -5,11 +5,11 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "babel src -d lib",
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint src test",
     "prepublish": "npm run pre-push && npm run build",
     "pre-push": "npm run lint && npm run test",
-    "test": "mocha",
-    "test:coverage": "nyc report --require babel-register --reporter=text-lcov | coveralls"
+    "test": "nyc --reporter=html --reporter=text mocha"
   },
   "keywords": [
     "express",
